@@ -24,8 +24,22 @@ class PortugueseDataset(Dataset):
         return self.length
 
     def preprocess(self, text):
-        batch_encoding = self.tokenizer(str(text).strip(), add_special_tokens=True, truncation=True, max_length=512)
-        return torch.tensor(batch_encoding["input_ids"])
+        max_length = 512
+        outputs = self.tokenizer(
+            str(text).strip(),
+            add_special_tokens=True,
+            truncation=True,
+            max_length=max_length,
+            return_overflowing_tokens=True,
+            return_length=True,
+        )
+
+        input_batch = []
+        for length, input_ids in zip(outputs["length"], outputs["input_ids"]):
+            if length == max_length:
+                input_batch.append(input_ids)
+
+        return torch.tensor(input_batch)
 
     def __getitem__(self, i):
         """
@@ -60,10 +74,11 @@ training_args = TrainingArguments(
     output_dir=output_dir,
     overwrite_output_dir=True,
     num_train_epochs=4,
-    per_device_train_batch_size=21,
+    per_device_train_batch_size=22,
     do_train=True,
     save_steps=10_000,
     save_total_limit=2,
+    logging_strategy="epoch"
 )
 
 trainer = Trainer(
