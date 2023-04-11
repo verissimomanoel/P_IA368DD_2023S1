@@ -134,3 +134,8 @@ Exercicio1/pyserini/
 Exercicio1/tools
 Exercicio1/run-*
 Exercicio3/data/movie.csv
+Exercicio4/data
+Exercicio4/model
+Exercicio5/data
+Exercicio5/model
+Exercicio5/generated_expansion.pkl
