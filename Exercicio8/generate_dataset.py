@@ -7,7 +7,6 @@ import random
 import json
 import os
 import pickle
-import time
 
 random.seed(12)
 base_path = "."
@@ -18,7 +17,7 @@ class GPTCall:
         self.__model_name = model_name
         self.__template = """{instruction}
 
-    Give me the good question for the document above
+    Give me a good and exclusive question for the document above
     """
         self.__prompt = PromptTemplate(template=self.__template, input_variables=["instruction"])
         self.__llm = ChatOpenAI(model_name=self.__model_name)
@@ -29,16 +28,19 @@ class GPTCall:
 
 
 def generate_ramdom_indexes(corpus):
-    pickle_file = f"{base_path}/data/random_list.pickle"
+    pickle_file = f"{base_path}/data/random_list_2.pickle"
+    with open(f"{base_path}/data/random_list.pickle", "rb") as f:
+        previous_list = pickle.load(f)
+
     if not os.path.isfile(pickle_file):
         random_list = []
-        max = 1000
+        max = 2000
         with tqdm(total=max) as pbar:
             while len(random_list) < max:
                 n = random.randint(0, len(corpus) - 1)
 
                 # Prevent duplicated index
-                if n not in random_list and corpus[n - 1:n]["text"][0] != "":
+                if n not in random_list and n not in previous_list and len(corpus[n - 1:n]["text"][0]) > 300:
                     random_list.append(n)
                     pbar.update(1)
 
@@ -64,8 +66,8 @@ def generate_ramdom_numbers(max=5, k=1000):
 
 
 def generate_dataset():
-    pickle_dataset = f"{base_path}/data/pickle_dataset.pickle"
-    pickle_indexes_processed = f"{base_path}/data/indexes_processed.pickle"
+    pickle_dataset = f"{base_path}/data/pickle_dataset2.pickle"
+    pickle_indexes_processed = f"{base_path}/data/indexes_processed2.pickle"
 
     gpt_call = GPTCall()
     passages_dataset = load_dataset("BeIR/trec-covid", "corpus")
@@ -76,7 +78,9 @@ def generate_dataset():
 
     for index in tqdm(random_list):
         if index not in indexes_processed:
-            instruction = corpus[index - 1:index]["text"][0]
+            title = corpus[index - 1:index]["title"][0]
+            text = corpus[index - 1:index]["text"][0]
+            instruction = title + " " + text
             doc_id = corpus[index - 1:index]["_id"][0]
             positive_query = gpt_call.get_answer(instruction)
             random_doc_ids = search_with_bm25(positive_query)
@@ -120,12 +124,12 @@ def search_with_bm25(query, max=5, k=1000):
 
 
 def export_jsonl():
-    pickle_dataset = f"{base_path}/data/pickle_dataset.pickle"
+    pickle_dataset = f"{base_path}/data/pickle_dataset2.pickle"
 
     with open(pickle_dataset, "rb") as f:
         list_data = pickle.load(f)
 
-    with open(f"{base_path}/data/manoel_1k_generated_queries_20230430.jsonl", "w") as file:
+    with open(f"{base_path}/data/manoel_2k_generated_queries_20230501.jsonl", "w") as file:
         for item in list_data:
             file.write(f"{json.dumps(item)}\n")
 
